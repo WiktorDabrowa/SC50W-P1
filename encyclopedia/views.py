@@ -1,5 +1,5 @@
 
-from django.http import HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from . import util
 from django import forms
@@ -15,9 +15,15 @@ def index(request):
     })
 
 def entry(request, entry_name):
-    title = entry_name
-    entry = util.get_entry(f"{entry_name}")
-    return render(request, "encyclopedia/entry.html", {"entry" : entry, "title":title})
+    all_entries = util.list_entries()
+    for entry in all_entries:
+        if entry == entry_name:
+            title = entry_name
+            entry = util.get_entry(f"{entry_name}")
+            return render(request, "encyclopedia/entry.html", {"entry" : entry, "title":title})
+        else:
+            continue
+    raise Http404("Given query not found.")
 
 def create(request):
     if request.method == "POST":
