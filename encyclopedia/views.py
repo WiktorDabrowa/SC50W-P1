@@ -1,14 +1,18 @@
 
 from asyncio.windows_events import NULL
-from django.http import Http404, HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, render
 from . import util
 from django import forms
 import random
 
 class NewPageForm(forms.Form):
-    title = forms.CharField(label="title")
-    content = forms.CharField(widget=forms.Textarea, label="content")
+    title = forms.CharField(label="Title")
+    content = forms.CharField(widget=forms.Textarea, label="Content")
+
+class EditPageForm(forms.Form):
+    content = forms.CharField(widget=forms.Textarea, label="Content")
+
 
 def index(request):
     return render(request, "encyclopedia/index.html", {
@@ -17,8 +21,10 @@ def index(request):
 
 def entry(request, entry_name):
     all_entries = util.list_entries()
+    entry_name_lower = entry_name.lower()
     for entry in all_entries:
-        if entry == entry_name:
+        entry_lower = entry.lower()
+        if entry_lower == entry_name_lower:
             title = entry_name
             entry = util.get_entry(f"{entry_name}")
             return render(request, "encyclopedia/entry.html", {"entry" : entry, "title":title})
@@ -75,10 +81,8 @@ def search(request):
         for entry in entries:
             entry_lower = entry.lower()
             if entry_lower == query:
-                entry = util.get_entry(entry)
-                title = query.capitalize()
-                #REDIRECT!!!!!
-                return render(request, "encyclopedia/entry.html", {"entry" : entry, "title":title})
+                entry = util.get_entry(entry)           
+                return HttpResponseRedirect(f"wiki/{query}")
             elif entry_lower.find(query) >= 0:
                 possible_positions.append(entry)
         if len(possible_positions) == 0:
@@ -89,8 +93,25 @@ def search(request):
         "entries": possible_positions, "alert": alert
     })
 
+def edit(request, entry_name):
+    entry = util.get_entry(entry_name)
+    if request.method == "POST":
+        form = EditPageForm(request.POST)
+        if form.is_valid():
+            content = form.cleaned_data["content"]
+            util.save_entry(entry_name,content)
+            return HttpResponseRedirect(f"/wiki/{entry_name}")
+        else:
+            return render(request, "encyclopedia/edit.html", { 
+                "form": EditPageForm(initial={'content':entry}), 
+                "action":"Please fill out all fields!",
+                "title":entry_name })
 
-            
+    return render(request, "encyclopedia/edit.html",{ 
+        "form": EditPageForm(initial={'content':entry}),
+        "action":"Edit existing page",
+        "title":entry_name })
+    
                 
             
 
