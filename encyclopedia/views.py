@@ -1,4 +1,5 @@
 
+from asyncio.windows_events import NULL
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from . import util
@@ -64,5 +65,33 @@ def random_page(request):
             continue        
     entry = util.get_entry(correct_entry)
     return render(request, "encyclopedia/entry.html", {"entry" : entry, "title":title})
-    #return render(request, "encyclopedia/entry.html", {"entry": context, "title":"title"})
+
+def search(request):
+    entries = util.list_entries()
+    if request.method == "POST":
+        query = request.POST['q']
+        query = query.lower()
+        possible_positions=[]
+        for entry in entries:
+            entry_lower = entry.lower()
+            if entry_lower == query:
+                entry = util.get_entry(entry)
+                title = query.capitalize()
+                #REDIRECT!!!!!
+                return render(request, "encyclopedia/entry.html", {"entry" : entry, "title":title})
+            elif entry_lower.find(query) >= 0:
+                possible_positions.append(entry)
+        if len(possible_positions) == 0:
+            alert = "No Matching entries found"
+        else:
+            alert = ""
+        return render(request, "encyclopedia/index.html", {
+        "entries": possible_positions, "alert": alert
+    })
+
+
+            
+                
+            
+
     
